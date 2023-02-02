@@ -1,0 +1,102 @@
+---
+# Source: celery-flower/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: celery-flower-dev
+  labels:
+    helm.sh/chart: celery-flower-0.1.0
+    app.kubernetes.io/name: celery-flower
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: celery-flower/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: celery-flower-dev
+  labels:
+    helm.sh/chart: celery-flower-0.1.0
+    app.kubernetes.io/name: celery-flower
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: celery-flower
+    app.kubernetes.io/instance: release-name
+---
+# Source: celery-flower/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-flower-dev
+  labels:
+    helm.sh/chart: celery-flower-0.1.0
+    app.kubernetes.io/name: celery-flower
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: celery-flower
+      app.kubernetes.io/instance: release-name
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: celery-flower
+        app.kubernetes.io/instance: release-name
+    spec:
+      serviceAccountName: celery-flower-dev
+      securityContext:
+        {}
+      containers:
+        - name: celery-flower
+          securityContext:
+            {}
+          image: "nginx:1.16.0"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            {}
+---
+# Source: celery-flower/templates/tests/test-connection.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "celery-flower-dev-test-connection"
+  labels:
+    helm.sh/chart: celery-flower-0.1.0
+    app.kubernetes.io/name: celery-flower
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.16.0"
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    "helm.sh/hook": test
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['celery-flower-dev:80']
+  restartPolicy: Never
